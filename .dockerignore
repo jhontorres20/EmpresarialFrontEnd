@@ -1,0 +1,5 @@
+#If the build were for deploying a container
+#this dockerignore would be used to exclude certain files
+#but for building the image for development, it's not
+#necessary to include the project and the node_modules folder
+*
