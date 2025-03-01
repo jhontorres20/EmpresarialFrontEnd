@@ -6,6 +6,8 @@ export default function Table({
   totalPages,
   setPage,
   setSize,
+  onDelete,
+  onToggleStatus,
 }: {
   data: any[];
   page: number;
@@ -13,6 +15,8 @@ export default function Table({
   totalPages: number;
   setPage: (page: number) => void;
   setSize: (size: number) => void;
+  onDelete: (id: number) => void;
+  onToggleStatus: (id: number, currentStatus: boolean) => void;
 }) {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 0 && newPage < totalPages) {
@@ -89,10 +93,10 @@ export default function Table({
                   <button title="Editar" className="text-yellow-500">
                     ✏️
                   </button>
-                  <button title="Eliminar" className="text-red-500">
+                  <button onClick={() => onDelete(item.id)} title="Eliminar" className="text-red-500">
                     ❌
                   </button>
-                  <button title="Activar/Desactivar" className="text-green-500">
+                  <button onClick={() => onToggleStatus(item.id, item.estado)} title="Activar/Desactivar" className="text-green-500">
                     ✔️
                   </button>
                   <button title="Descargar" className="text-black">

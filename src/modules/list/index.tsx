@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Table from "../../components/Table";
 import { useListQuery } from "../../redux/services";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
 
 export default function List() {
   // Estados para el paginado dinámico
@@ -22,6 +23,89 @@ export default function List() {
     setPage(0); // Resetear a la primera página cuando cambia el tamaño
   };
 
+  // Función para eliminar un comerciante
+  const handleDelete = async (id: number) => {
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+      Swal.fire('Error', 'Token de autenticación no encontrado.', 'error');
+      return;
+    }
+
+    const confirm = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: 'Esta acción eliminará el registro permanentemente.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const response = await fetch(`http://localhost:8080/comerciante/delete/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el registro.');
+      }
+
+      Swal.fire('Eliminado', 'El registro ha sido eliminado con éxito.', 'success');
+      refetch(); // Recargar la tabla
+    } catch (error) {
+      console.error('Error al eliminar el registro:', error);
+      Swal.fire('Error', 'Hubo un problema al eliminar el registro.', 'error');
+    }
+  };
+
+  // Función para habilitar/deshabilitar un comerciante
+  const handleToggleStatus = async (id: number, currentStatus: boolean) => {
+    const token = localStorage.getItem('authToken');
+
+    if (!token) {
+      Swal.fire('Error', 'Token de autenticación no encontrado.', 'error');
+      return;
+    }
+
+    const newState = !currentStatus; // Invertir el estado (habilitar/deshabilitar)
+    const action = newState ? "habilitar" : "deshabilitar";
+
+    const confirm = await Swal.fire({
+      title: `¿Estás seguro?`,
+      text: `El registro se va ${action}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const response = await fetch(`http://localhost:8080/comerciante/estado/${id}?estado=${newState}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar el estado del registro.');
+      }
+      const actionDespues = newState ? "habilitado" : "deshabilitado";
+      Swal.fire('¡Estado actualizado!', `El registro se ha ${actionDespues}.`, 'success');
+      refetch(); // Actualiza la tabla tras el cambio
+    } catch (error) {
+      console.error('Error al cambiar el estado:', error);
+      Swal.fire('Error', 'Hubo un problema al cambiar el estado.', 'error');
+    }
+  };
+
   const DownloadCsvButton = () => {
     const handleDownload = async () => {
 
@@ -36,7 +120,7 @@ export default function List() {
         const response = await fetch('http://localhost:8080/comerciante/generarCsv', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': 'Bearer ${token}',
           },
         });
   
@@ -108,6 +192,8 @@ export default function List() {
               totalPages={data.totalPages}
               setPage={setPage}
               setSize={handleRowsPerPageChange}
+              onDelete={handleDelete}
+              onToggleStatus={handleToggleStatus}
             />
           </div>
           )}          
