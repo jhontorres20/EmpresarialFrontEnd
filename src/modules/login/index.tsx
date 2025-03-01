@@ -1,3 +1,4 @@
+import CryptoJS from "crypto-js";
 import { FormProvider, useForm } from "react-hook-form";
 import InputText from "../../components/InputText";
 import InputCheckBox from "../../components/InputCheckBox";
@@ -24,13 +25,30 @@ export default function Login() {
   // Hook para la mutación de login
   const [loginService] = useLoginMutation();
 
+   // Clave pública para encriptar las credenciales (compártela con el backend)
+   const SECRET_KEY = CryptoJS.enc.Utf8.parse("pTXgQ42qz2HOqF2rgLUlnrhmSjM8HTOX");
+   const IV = CryptoJS.enc.Utf8.parse("1234567890123456"); // 16 bytes para CBC
+
+   const encryptPassword = (password: string) => {
+    const encrypted = CryptoJS.AES.encrypt(password, SECRET_KEY, {
+      iv: IV,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7,
+    });  
+    return encrypted.ciphertext.toString(CryptoJS.enc.Base64);
+  };
+
   // Función de envío del formulario
   const onSubmit = async ({ ...data }) => {
     try {
+
+      // Encriptar la contraseña antes de enviarla
+      const encryptedPassword = encryptPassword(data.password);
+
       // Envía la solicitud de autenticación con los datos del formulario
       await loginService({
         email: data.email,
-        password: data.password,
+        password: encryptedPassword,
         terms: data.terms,
       })
         .unwrap()
