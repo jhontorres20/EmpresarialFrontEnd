@@ -46,10 +46,25 @@ export const injectEnpoints = api.injectEndpoints({
         method: "GET",
       }),
     }),
-    form: builder.mutation<void, FormData>({
+    /*form: builder.mutation<void, FormData>({
       query: (body) => ({
         url: "comerciante/create",
         method: "POST",
+        body,
+      }),
+    }),*/
+    createForm: builder.mutation<void, FormData>({
+      query: (body) => ({
+        url: "comerciante/create",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    updateForm: builder.mutation<void, { id: number; body: FormData }>({
+      query: ({ id, body }) => ({
+        url: `comerciante/update/${id}`,
+        method: "PUT",
         body,
       }),
     }),
@@ -59,5 +74,6 @@ export const injectEnpoints = api.injectEndpoints({
 export const {
   useLoginMutation,
   useListQuery,
-  useFormMutation,
+  useCreateFormMutation,
+  useUpdateFormMutation,
 } = injectEnpoints;

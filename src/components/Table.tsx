@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router-dom";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function Table({
   data = [],
@@ -18,6 +20,13 @@ export default function Table({
   onDelete: (id: number) => void;
   onToggleStatus: (id: number, currentStatus: boolean) => void;
 }) {
+
+  const navigate = useNavigate();
+
+  const handleEdit = (comerciante: any) => {
+    navigate("/form", { state: { comerciante } }); // Enviar datos a la vista de edición
+  };
+
   const handlePageChange = (newPage: number) => {
     if (newPage >= 0 && newPage < totalPages) {
       setPage(newPage);
@@ -90,7 +99,7 @@ export default function Table({
                   </span>
                 </td>
                 <td className="p-7 border flex justify-center gap-2">
-                  <button title="Editar" className="text-yellow-500">
+                  <button onClick={() => handleEdit(item)} title="Editar" className="text-yellow-500">
                     ✏️
                   </button>
                   <button onClick={() => onDelete(item.id)} title="Eliminar" className="text-red-500">

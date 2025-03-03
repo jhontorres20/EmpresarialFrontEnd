@@ -2,18 +2,35 @@ import { FormProvider, useForm } from "react-hook-form";
 import InputText from "../../components/InputText";
 import InputSelect from "../../components/InputSelect";
 import { FormData } from "../../utils/types";
-import { useFormMutation } from "../../redux/services";
+import {  useCreateFormMutation,  useUpdateFormMutation,} from "../../redux/services";
 import Swal from "sweetalert2";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 export default function Form() {
-  // Hook para manejar el formulario con validaciones
+  const location = useLocation();
+  const navigate = useNavigate();
+  const comerciante = location.state?.comerciante || null; // Datos recibidos desde la vista anterior
+
+  // Formularios
   const HookForm = useForm<FormData>({
     mode: "all",
     criteriaMode: "all",
+    defaultValues: comerciante || {
+      razonSocial: "",
+      departamento: "",
+      municipio: { value: "", label: "" },
+      telefono: "",
+      correo: "",
+      fechaRegistro: "",
+    },
   });
 
-  // Hook para enviar los datos del formulario
-  const [submitForm, { isLoading, reset }] = useFormMutation();
+  // Mutations
+  const [createForm, { isLoading: isCreating }] = useCreateFormMutation();
+  const [updateForm, { isLoading: isUpdating }] = useUpdateFormMutation();
+
+  const isLoading = isCreating || isUpdating;
 
   const municipios = [
     { value: "1", label: "CALI" },
@@ -21,55 +38,70 @@ export default function Form() {
     { value: "3", label: "YUMBO" },
   ];
 
-  // Función de envío del formulario
   const onSubmit = async (data: FormData) => {
+    const token = localStorage.getItem("authToken");
 
-    console.log("Datos del formulario recibidos:", data);
-
-    // Verificar que el campo municipio contenga el objeto esperado
-    const selectedMunicipio = data.municipio;
-  
-    if (!selectedMunicipio || !selectedMunicipio.value || !selectedMunicipio.label) {
-      console.error("Municipio no válido:", selectedMunicipio);
+    if (!token) {
+      Swal.fire("Error", "Token de autenticación no encontrado.", "error");
       return;
     }
-  
-    // Transformar el objeto para que coincida con lo que espera el backend
-    data = {
+
+    const confirm = await Swal.fire({
+      title: "¿Estás seguro?",
+      text: comerciante
+        ? "¿Deseas actualizar este registro?"
+        : "¿Deseas crear un nuevo registro?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, continuar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    const selectedMunicipio = data.municipio;
+
+    if (!selectedMunicipio || !selectedMunicipio.value || !selectedMunicipio.label) {
+      Swal.fire("Error", "Debes seleccionar un municipio válido.", "error");
+      return;
+    }
+
+    const payload = {
       ...data,
       municipio: {
-        id: Number(selectedMunicipio.value), // Asegura que el id sea un número
-        nombre: selectedMunicipio.label, // El nombre viene directamente del objeto
+        id: Number(selectedMunicipio.value),
+        nombre: selectedMunicipio.label,
       },
     };
-  
-    console.log("Payload enviado:", data);
 
     try {
-      await submitForm(data) // Se envía los datos del formulario a la API
-        .unwrap()
-        .then(() => {
-          //alert("Formulario enviado con éxito!"); // Mensaje de éxito
-          Swal.fire({
-            title: "¡Éxito!",
-            text: "La operación se realizó correctamente.",
-            icon: "success",
-            confirmButtonText: "Aceptar"
-          });
-          reset(); // Limpia el estado de la mutación
-          HookForm.reset(); // Reinicia el formulario
-        });
+      if (comerciante) {
+        await updateForm({ id: comerciante.id, body: payload }).unwrap();
+        Swal.fire("¡Actualizado!", "El registro fue actualizado con éxito.", "success");
+      } else {
+        await createForm(payload).unwrap();
+        Swal.fire("¡Creado!", "El registro fue creado con éxito.", "success");
+      }
+
+      HookForm.reset();
+      navigate("/list");
     } catch (error) {
-      //alert("Error al enviar el formulario");
-      Swal.fire({
-                  title: 'Error',
-                  text: 'No se pudo guardar el formulario',
-                  icon: 'error',
-                  confirmButtonText: 'OK'
-                })
+      Swal.fire("Error", "No se pudo procesar el formulario.", "error");
       console.error("Error:", error);
     }
   };
+
+  useEffect(() => {
+    if (comerciante) {
+      HookForm.reset({
+        ...comerciante,
+        municipio: municipios.find((m) => m.label === comerciante.municipio?.nombre) || {
+          value: "",
+          label: "",
+        },
+      });
+    }
+  }, [comerciante, HookForm]);
 
   return (
     <div className="flex h-full w-full flex-col items-center overflow-auto bg-white">
@@ -80,7 +112,14 @@ export default function Form() {
         </div>
 
         {/*Contenedor del formulario */}
-        <div className="flex flex-col w-full p-7 flex-grow overflow-hidden">
+        <div className="flex flex-col w-full p-7 flex-grow overflow-auto">
+          
+          <div className="p-6 flex items-center border-b-[1px] border-[#e0e0e0]">
+            <p className="text-2xl font-bold text-[#0f1469]">
+              {comerciante ? "Editar Registro" : "Crear Registro"}
+            </p>
+          </div>
+          
           <div className="w-full h-fit">
             <FormProvider {...HookForm}>
               <form
@@ -111,7 +150,11 @@ export default function Form() {
                       name="departamento"
                       placeholder="Departamento"
                       options={[
-                        { value: "1", label: "VALLE DEL CAUCA" }
+                        { value: "1", label: "VALLE DEL CAUCA" },
+                        { value: "2", label: "CUNDINAMARCA" },
+                        { value: "3", label: "HUILA" },
+                        { value: "4", label: "MAGDALENA" },
+                        { value: "4", label: "ANTIOQUIA" }
                       ]}
                       showLabel={!!HookForm.watch("departamento")}
                       rules={{
@@ -209,7 +252,7 @@ export default function Form() {
                   ? "bg-gray-500 cursor-not-allowed"
                   : "bg-pink-500 hover:bg-pink-600 text-white"
               }`}>
-              {isLoading ? "Enviando..." : "Enviar Formulario"}
+              {isLoading ? "Guardando..." : comerciante ? "Actualizar Registro" : "Crear Registro"}
             </button>
           </div>
         </div>
