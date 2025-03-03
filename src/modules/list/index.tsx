@@ -141,10 +141,14 @@ export default function List() {
             'Authorization': `Bearer ${token}`,
           },
         });
-  
-        if (!response.ok) {
-          throw new Error('Error al descargar el archivo.');
+
+        // Validar errores HTTP (como 403)
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('403'); // Lanzar un error específico
         }
+        throw new Error('Error al descargar el archivo.');
+      }
   
         // Obtener el blob del archivo
         const blob = await response.blob();
@@ -160,9 +164,14 @@ export default function List() {
         // Limpiar recursos
         a.remove();
         window.URL.revokeObjectURL(url);
-      } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
         console.error('Error al descargar el archivo:', error);
-        alert('Hubo un error al descargar el archivo.');
+        if (error.message  === '403') {
+          Swal.fire('Acceso Denegado', 'No tienes suficientes privilegios para descargar archivos.', 'error');
+        } else {
+          Swal.fire('Error', 'Hubo un Error al descargar el archivo:.', 'error');
+        }  
       }
     };
   

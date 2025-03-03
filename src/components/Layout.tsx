@@ -24,6 +24,15 @@ export default function Layout() {
     }
   }, [user, dispatch, navigate]);
 
+  const roleLabels: Record<string, string> = {
+    ROLE_ADMIN: 'Administrador',
+    ROLE_USER: 'Usuario',
+    ROLE_MANAGER: 'Gerente',
+    ROLE_EDITOR: 'Editor',
+  };
+  
+  const getRoleLabel = (role: string) => roleLabels[role] || 'Rol desconocido';
+
   return (
     <div className="drawer h-screen flex flex-col">
       {/* Fondo del drawer */}
@@ -46,7 +55,10 @@ export default function Layout() {
                 <UserCircleIcon className="w-8 h-8" />
                 <div className="flex flex-col">
                   <span className="text-lg font-bold">{`${user?.sub}`}</span>
-                  <span className="text-lg font-bold">{`${user?.roles && user?.roles.length > 0 && user?.roles[0]}`}</span>
+                  {user?.roles?.length ? (<span className="text-lg font-bold">{`${user?.roles && user?.roles.length > 0 && user?.roles.map(getRoleLabel).join(', ')}`}</span>)
+                  : (
+                    <span className="text-lg font-bold text-gray-500">Sin roles asignados</span>
+                  )}
                   <button
                     onClick={() => {
                       dispatch(logout()); // Cierra sesión eliminando los datos del usuario en Redux
